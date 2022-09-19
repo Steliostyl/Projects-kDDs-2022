@@ -17,7 +17,6 @@ def main():
     # Create an array of randomly generated 
     # numbers within the hash space
     random_n = random.sample(range(2**KS), NC)
-    print(random_n)
 
     # Create nodes from randomly generated 
     # numbers and add them to the network
@@ -25,6 +24,7 @@ def main():
         nodes[a] = node.Node(a)
         node.node_join(nodes[a])
     
+    print(sorted(random_n))
     printNodes()
 
 if __name__ == "__main__":

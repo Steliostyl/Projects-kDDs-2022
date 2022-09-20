@@ -99,9 +99,8 @@ class Node:
 
         new_n.f_table.append([(new_n.id + 1) % (HS), self])
         
-        #Cases around zero point too tired for this
         # Move successor's items to new node 
-        for key in list(self.items.keys()):
+        for key in sorted(self.items):
             # Items ∉ (predecessor, new node]
             if not comp_cw_dist(new_n.pred.id, hash_func(key), new_n.id):
                 break

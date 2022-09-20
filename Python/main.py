@@ -1,19 +1,16 @@
-import node
+import node2
 
 # Node count
-NC = 4
+NC = 5
 
 def main():
-    nw = node.Network()
+    nw = node2.Network()
     nw.build_network(NC)
+    
+    items = node2.parse_csv("../NH4_NO3.csv")
+    nw.insert_all_data(items.items())
 
-    test_item = {'test_key' : 'test_value'}
-    nw.insert_key(test_item)
-    nw.printNodes()
-    # print("+++++++++")
-    # test_node = Node(6)
-    # nw.node_join(test_node)
-    # nw.printNodes()
+    nw.printNodes(items_print=True)
     
 if __name__ == "__main__":
     main()

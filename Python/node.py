@@ -1,11 +1,31 @@
 import hashlib
 import random
+import pandas as pd
 
 # Key size (bits)
 KS = 4
 # Hashing space
 HS = 2**KS
 
+def parse_csv(filename) -> dict:
+    """Parses csv and returns a list of items."""
+    items = {}
+    df = pd.read_csv(filename)
+
+    for i in range(len(df)):
+        key = '_'.join([df.values[i][0], str(df.values[i][2])])
+        
+        data = {key : {
+            'Date': df.values[i][0],
+            'Block': df.values[i][1],
+            'Plot': df.values[i][2],
+            'Experimental_treatment': df.values[i][3],
+            'Soil_NH4': df.values[i][4],
+            'Soil_NO3': df.values[i][5],
+        }}
+        items[key] = data
+    
+    return items
 
 def hash_func(key: str):
     hash_out = hashlib.sha1()
@@ -130,7 +150,7 @@ class Node:
 
     def insert_item(self, new_item):
         """Insert data in the node."""
-        self.items[list(new_item.keys())[0]] = list(new_item.values())[0]
+        self.items[new_item[0]] = new_item[1]
 
 
 class Network:
@@ -164,16 +184,25 @@ class Network:
 
         self.nodes.append(new_node)
 
-    def insert_key(self, new_item : dict):
-        self.nodes[0].find_successor(hash_func(list(new_item.keys())[0])).insert_item(new_item) # sometimes it works
+    def insert_key(self, new_item):
+        succ = self.nodes[0].find_successor(hash_func(new_item[0]))
+        succ.insert_item(new_item)
+        #print('Inserting item with hashed key:', hash_func(new_item[0]), "to node with ID:", succ.id)
+        
+    def insert_all_data(self, dict_items):
+        for dict_item in list(dict_items):
+            self.insert_key(dict_item)
         
     def update_record(self, new_item : dict):
         self.nodes[0].find_successor(hash_func(list(new_item.keys())[0])).insert_item(new_item)
         
-    def printNodes(self):
+    def printNodes(self, items_print = False):
+        print(sorted([nnn.id for nnn in self.nodes]))
         for n in self.nodes:
             print(n.id)
-            print(n.items)
+            if items_print: 
+                print(n.items.keys())
             for entry in n.f_table:
                 print(entry[0], "->", entry[1].id)
             print()
+            

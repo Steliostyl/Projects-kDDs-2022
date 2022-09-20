@@ -1,31 +1,19 @@
-import node as node
-import random
-from node import nodes
-from node import KS
+import node
 
 # Node count
-NC = 5
-
-def printNodes():
-    for item in nodes.items():
-        print(item[1].id)
-        for entry in item[1].f_table:
-            print(entry[0], "->", entry[1].id)
-        print()
+NC = 4
 
 def main():
-    # Create an array of randomly generated 
-    # numbers within the hash space
-    random_n = random.sample(range(2**KS), NC)
+    nw = node.Network()
+    nw.build_network(NC)
 
-    # Create nodes from randomly generated 
-    # numbers and add them to the network
-    for a in random_n:
-        nodes[a] = node.Node(a)
-        node.node_join(nodes[a])
+    test_item = {'test_key' : 'test_value'}
+    nw.insert_key(test_item)
+    nw.printNodes()
+    # print("+++++++++")
+    # test_node = Node(6)
+    # nw.node_join(test_node)
+    # nw.printNodes()
     
-    print(sorted(random_n))
-    printNodes()
-
 if __name__ == "__main__":
     main()

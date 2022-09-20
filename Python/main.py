@@ -1,13 +1,13 @@
-import node2
+import node
 
 # Node count
 NC = 5
 
 def main():
-    nw = node2.Network()
+    nw = node.Network()
     nw.build_network(NC)
     
-    items = node2.parse_csv("../NH4_NO3.csv")
+    items = node.parse_csv("../NH4_NO3.csv")
     nw.insert_all_data(items.items())
 
     nw.printNodes(items_print=True)

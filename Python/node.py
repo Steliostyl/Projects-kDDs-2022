@@ -57,16 +57,12 @@ class Node:
         # list(table) of lists of the form: [position, node]
         self.f_table = []
         self.pred = pred
-        self.successor = None
 
     def closest_pre_node(self, key: int) -> 'Node':
         """Returns the last predecessor from THIS node's finger table"""
 
         current = self
         for i in range(KS):
-            if i >= len(current.f_table):
-                print("F_table size", i)
-                break
             # current.successor ∈ (current, key]
             if comp_cw_dist(current.id, current.f_table[i][1].id, key):
                 current = current.f_table[i][1]
@@ -110,23 +106,24 @@ class Node:
         for i in range(KS - 1):
             next_in_finger = self.f_table[i + 1]
             next_in_finger[1] = self.circular_node_search(next_in_finger[0])
+        #self.print_node()
 
     def insert_new_pred(self, new_n: 'Node') -> None:
-        """Inserts new predecessor node"""
-
-        # print("Inserting new node", new_n.id, "before node", self.id)
-
+        """Inserts new node to the network as this node's predecessor.
+        Also updates neighboring nodes and necessary finger tables."""
+        
+        # New node's successor is this node
+        new_n.f_table.append([(new_n.id + 1) % (HS), self])
         # Predecessor's new successor is the new node
         self.pred.f_table[0][1] = new_n
         # New node's predecessor is this node's predecessor
         new_n.pred = self.pred
         # This node's predecessor is the new node
         self.pred = new_n
-        # New node's successor is this node
-        new_n.f_table.append([(new_n.id + 1) % (HS), self])
 
         self.move_items_to_pred()
         new_n.initialize_finger_table()
+        new_n.update_necessary_fingers(joinning=True)
 
     def insert_item(self, new_item: tuple) -> None:
         """Insert data in the node."""
@@ -166,13 +163,72 @@ class Node:
             self.f_table.append([pos, self.f_table[0][1].find_successor(pos)])
             i += 1
 
+    def leave(self) -> None:
+        """Removes node from the network."""
+
+        # Move all keys to successor node
+        self.f_table[0][1].items = self.f_table[0][1].items | self.items
+        # Update successor's predecessor
+        self.f_table[0][1].pred = self.pred
+        # Update predecessor's successor
+        self.pred.f_table[0][1] = self.f_table[0][1]
+
+        self.update_necessary_fingers()
+    
+    def calc_furth_poss_pred(self) -> int:
+        """Calculates the furthest possible predecessor id whose 
+        last finger table entry position is equal to or higher
+        than the current node's ID."""
+
+        if self.id >= 2**(KS-1):
+            return self.id - (2**(KS-1))
+
+        return 2**KS + (self.id-(2**(KS-1)))
+
+    def update_necessary_fingers(self, joinning = False) -> None:
+        """Updates necessary finger tables on node join/leave"""
+
+        furthest_possible_pred_id = self.calc_furth_poss_pred()
+        next_pred = self.pred
+        if next_pred == self or next_pred is None:
+            return
+
+        # next_pred.id ∈ (furthest_possible_pred_id, self]
+        while comp_cw_dist(furthest_possible_pred_id, next_pred.id, self.id):
+            next_pred.fix_fingers()
+            next_pred = next_pred.pred
+            if next_pred == self or next_pred is None:
+                return
+            
+        if not joinning:
+            comp = self
+        else:
+            comp = self.f_table[0][1]
+
+        # next_pred last = current node
+        while next_pred.f_table[KS-1][1] == comp:
+            next_pred.fix_fingers()
+            next_pred = next_pred.pred
+            if next_pred == self or next_pred is None:
+                return
+
+    def print_node(self, items_print = False) -> None:
+        print(self.id)
+        if items_print: 
+            print(self.items.keys())
+        for entry in self.f_table:
+            print(entry[0], "->", entry[1].id)
+
 class Network:
     def __init__(self) -> None:
         self.nodes = []
         
-    def build_network(self, node_count : int) -> None:
-        random_n = random.sample(range(HS), node_count)
-        for x in random_n:
+    def build_network(self, node_count: int, node_ids: list = []) -> None:
+        if node_ids == []:
+            numbers = random.sample(range(HS), node_count)
+        else: 
+            numbers = node_ids
+        for x in numbers:
             new_node = Node(x)
             self.node_join(new_node)
             
@@ -180,42 +236,52 @@ class Network:
         # First node.
         if not self.nodes:
             new_node.pred = new_node
-            new_node.successor = new_node
             # Initialize finger table.
             new_node.f_table = [ [(new_node.id + 2**i) % HS, new_node] for i in range(KS) ]
 
         else:
-            # Find new node successor.
-            successor = self.nodes[0].find_successor(new_node.id)
-            new_node.successor = successor
-            # Recalibrate neighboring nodes and finger tables.
-            successor.insert_new_pred(new_node)
+            # Find new node successor and insert the new node before it.
+            self.nodes[0].find_successor(new_node.id).insert_new_pred(new_node)
 
         self.nodes.append(new_node)
-        self.update_all_fingers()
 
-    def insert_key(self, new_item: tuple) -> None:
+    def insert_item(self, new_item: tuple) -> None:
+        """Inserts an item (key, value) to the correct node of the network."""
+
         succ = self.nodes[0].find_successor(hash_func(new_item[0]))
         succ.items[new_item[0]] = new_item[1]
         #print('Inserting item with hashed key:', hash_func(new_item[0]), "to node with ID:", succ.id)
         
     def insert_all_data(self, dict_items) -> None:
+        """Inserts all data from parsed csv into the correct nodes."""
+
         for dict_item in list(dict_items):
-            self.insert_key(dict_item)
+            self.insert_item(dict_item)
         
     def update_record(self, new_item : dict) -> None:
+        """Updates the record (value) of an item given its key."""
+
         self.nodes[0].find_successor(hash_func(list(new_item.keys())[0])).insert_item(new_item)
         
     def printNodes(self, items_print = False) -> None:
+        """Prints all nodes of the network"""
+
         print(sorted([nnn.id for nnn in self.nodes]))
         for n in self.nodes:
-            print(n.id)
-            if items_print: 
-                print(n.items.keys())
-            for entry in n.f_table:
-                print(entry[0], "->", entry[1].id)
+            n.print_node(items_print=items_print)
             print()
 
     def update_all_fingers(self):
+        """Deprecated. Replaced by update_necessary_fingers in Node class."""
+
         for node in self.nodes:
             node.fix_fingers()
+
+    def remove_random_node(self) -> str:
+        """Removes random node from network and returns its ID"""
+
+        r_i = random.randint(0, len(self.nodes)-1)
+        r_id = self.nodes[r_i].id
+        self.nodes[r_i].leave()
+        del(self.nodes[r_i])
+        return r_id

@@ -15,13 +15,15 @@ def main():
     interface.insert_all_data(items.items())
     interface.print_all_nodes()
 
-    # Node Join
+    # Node Join & Leave
     interface.node_join(15)
-
-    # Node leave
     interface.remove_node(7)
 
     interface.print_all_nodes()
+    
+    # Range & kNN queries
+    interface.range_query(2,7)
+    interface.knn(2,4)
     
 if __name__ == "__main__":
     main()

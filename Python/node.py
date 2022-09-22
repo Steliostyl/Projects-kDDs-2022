@@ -310,3 +310,46 @@ class Interface:
             # Return first inserted node
             #print(list(self.nodes.items())[0][1].id)
             return list(self.nodes.items())[0][1]
+
+    def range_query(self, start: int, end:int) -> None:
+        """List with the id of the nodes on the interface."""
+        nodes = list(self.nodes.keys())
+        awnser = []
+
+        for i in range(start, end+1):
+            if i in nodes:
+                awnser.append(i)
+
+        print("The id of nodes in between the range are:")
+        print(awnser)
+        print()
+
+    def knn(self, k: int, id: int) -> None:
+        """List with the id of the nodes on the interface."""
+        nodes = sorted(list(self.nodes.keys()))
+        left, right = 1, 1
+        result = []
+        if id not in nodes:
+            print("The node is not on the interface.")
+            
+            return
+        else:
+            node_index = nodes.index(id)
+            node = nodes[node_index]
+            while len(result) < k:
+                if abs(node - nodes[node_index-left]) < abs(node - nodes[node_index+right]):
+                    result.append(nodes[node_index-left])
+                    left += 1
+                elif abs(node - nodes[node_index-left]) > abs(node - nodes[node_index+right]):
+                    result.append(nodes[node_index+right])
+                    right += 1
+                else:
+                    if nodes[node_index-left] != nodes[node_index+right]:
+                        result.append(nodes[node_index-left])
+                        result.append(nodes[node_index+right])
+                    else:
+                        result.append(nodes[node_index-left])
+                    left += 1
+                    right += 1
+            print(f"The {k} nearest neighbours of node {node} are:")
+            print(result) 

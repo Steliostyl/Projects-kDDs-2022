@@ -15,8 +15,11 @@ def main():
     interface.print_all_nodes()
 
     # Random node removal
-    print("Removing node ", interface.remove_random_node())
-    interface.print_all_nodes()
+    # print("Removing node ", interface.remove_random_node())
+    # interface.print_all_nodes()
+
+    interface.range_query(2,7)
+    interface.knn(2,4)
     
 if __name__ == "__main__":
     main()

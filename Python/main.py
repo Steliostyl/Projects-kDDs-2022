@@ -6,24 +6,24 @@ NC = 5
 def main():
     # Nodes creation
     interface = node.Interface()
-    #interface.build_network(NC)
-    node_ids=[11, 12, 7, 4]
-    interface.build_network(node_count=len(node_ids), node_ids=node_ids)
+    interface.build_network(NC)
+    #node_ids=[11, 12, 7, 4]
+    #interface.build_network(node_count=len(node_ids), node_ids=node_ids)
     
     # Data insertion
     items = node.parse_csv("NH4_NO3.csv")
     interface.insert_all_data(items.items())
-    interface.print_all_nodes()
+    #interface.print_all_nodes()
 
     # Node Join & Leave
     interface.node_join(15)
     interface.remove_node(7)
 
-    interface.print_all_nodes()
+    interface.print_all_nodes(items_print=True)
     
     # Range & kNN queries
-    interface.range_query(2,7)
-    interface.knn(2,4)
+    #interface.range_query(2,7)
+    #interface.knn(2,4)
     
 if __name__ == "__main__":
     main()

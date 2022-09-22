@@ -104,13 +104,16 @@ class Node:
 
         for i in range(KS - 1):
             next_in_finger = self.f_table[i + 1]
-            next_in_finger[1] = self.circular_node_search(next_in_finger[0])
+            next_in_finger[1] = self.f_table[i][1].find_successor(next_in_finger[0])
         #self.print_node()
 
     def insert_new_pred(self, new_n: 'Node') -> None:
         """Inserts new node to the network as this node's predecessor.
         Also updates neighboring nodes and necessary finger tables."""
-        
+                
+        print("Predecessor node BEFORE node join:")
+        self.pred.print_node(items_print=True)
+
         # New node's successor is this node
         new_n.f_table.append([(new_n.id + 1) % (HS), self])
         # Predecessor's new successor is the new node
@@ -123,6 +126,9 @@ class Node:
         self.move_items_to_pred()
         new_n.initialize_finger_table()
         new_n.update_necessary_fingers(joinning=True)
+                        
+        print("Predecessor node AFTER node join:")
+        new_n.pred.print_node(items_print=True)
 
     def insert_item_to_node(self, new_item: tuple) -> None:
         """Insert data in the node."""
@@ -224,6 +230,7 @@ class Node:
             print(self.items.keys())
         for entry in self.f_table:
             print(entry[0], "->", entry[1].id)
+        print()
 
 class Interface:
     def __init__(self) -> None:
@@ -238,75 +245,99 @@ class Interface:
             final_ids = node_ids
 
         for x in final_ids:
-            new_node = Node(x)
-            self.node_join(new_node)
+            self.node_join(new_node_id=x)
             
-    def node_join(self, new_node : Node, start_node: Node = None) -> None:
+    def node_join(self, new_node_id: int, start_node_id: int = None) -> None:
         """Adds node to the network."""
         
+        print("Creating and adding node", new_node_id, "to the network...")
+        new_node = Node(new_node_id)
         # First node.
         if not self.nodes:
             new_node.pred = new_node
             # Initialize finger table.
             new_node.f_table = [ [(new_node.id + 2**i) % HS, new_node] for i in range(KS) ]
         else:
-            start_node = self.get_start_node(start_node)
+            start_node = self.get_node(start_node_id)
             # Find new node successor and insert the new node before it.
             start_node.find_successor(new_node.id).insert_new_pred(new_node)
 
         self.nodes[new_node.id] = new_node
+        new_node.print_node(items_print=True)
 
-    def insert_item(self, new_item: tuple, start_node: Node = None) -> None:
+    def insert_item(self, new_item: tuple, start_node_id: int = None) -> None:
         """Inserts an item (key, value) to the correct node of the network."""
 
-        start_node = self.get_start_node(start_node)
+        start_node = self.get_node(start_node_id)
         succ = start_node.find_successor(hash_func(new_item[0]))
         succ.insert_item_to_node(new_item)
         #print('Inserting item with hashed key:', hash_func(new_item[0]), "to node with ID:", succ.id)
 
-    def delete_item(self, key: str, start_node: Node = None):
+    def delete_item(self, key: str, start_node_id: int = None):
         """Finds node responsible for key and removes the (key, value) entry from it."""
 
-        start_node = self.get_start_node(start_node)
+        start_node = self.get_node(start_node_id)
         start_node.find_successor(hash_func(key)).delete_item_from_node(key)
         
-    def insert_all_data(self, dict_items, start_node: Node = None) -> None:
+    def insert_all_data(self, dict_items, start_node_id: int = None) -> None:
         """Inserts all data from parsed csv into the correct nodes."""
 
-        start_node = self.get_start_node(start_node)
         for dict_item in list(dict_items):
-            self.insert_item(dict_item)
+            self.insert_item(dict_item, start_node_id)
         
-    def update_record(self, new_item : dict, start_node: Node = None) -> None:
+    def update_record(self, new_item : dict, start_node_id: int = None) -> None:
         """Updates the record (value) of an item given its key."""
 
-        start_node = self.get_start_node(start_node)
+        start_node = self.get_node(start_node_id)
         start_node.find_successor(hash_func(list(new_item.keys())[0])).insert_item_to_node(new_item)
         
     def print_all_nodes(self, items_print = False) -> None:
         """Prints all nodes of the network"""
 
-        print(sorted([nnn[1].id for nnn in self.nodes.items()]))
-        for n in self.nodes.items():
+        sorted_nodes = sorted(list(self.nodes.items()))
+        print([sor_id[0] for sor_id in sorted_nodes])
+        for n in sorted_nodes:
             n[1].print_node(items_print=items_print)
-            print()
 
-    def remove_random_node(self, start_node: Node = None) -> str:
-        """Removes random node from network and returns its ID"""
+    def remove_node(self, node_id: int = None) -> None:
+        """Removes node from network and returns its successor.
+        If no node is specified or specified node is not found,
+        it removes a random node from the network.
+        Finally, it prints the id of removed node."""
 
-        start_node = self.get_start_node(start_node)
-        random_key = random.choice(list(self.nodes))
-        self.nodes[random_key].leave()
-        del(self.nodes[random_key])
-        return random_key
+        if node_id not in self.nodes:
+            if node_id:
+                print("Node with id", node_id, "not found. Removing random node.")
+            node_id = random.choice(list(self.nodes))
+            
+        successor = self.nodes[node_id].f_table[0][1]
+        print("Node that will be removed from network:")
+        self.nodes[node_id].print_node(items_print=True)
 
-    def get_start_node(self, start_node: Node == None) -> Node:
+        print("Successor node before", node_id, "leave:")
+        successor.print_node(items_print=True)
+        
+        self.nodes[node_id].leave()
+        del(self.nodes[node_id])
+
+        print("Successor node after", node_id, "leave:")
+        successor.print_node(items_print=True)
+
+    def get_node(self, node_id: int = None) -> Node:
+        """Returns node with id node_id. If it's not found,
+        it returns the first node that joined the network."""
+
         # If start_node is specified
-        if start_node != None:
-            return start_node
+        if node_id != None:
+            if node_id in self.nodes:
+                return self.nodes[node_id]
+            else:
+                print("Node with id", node_id, "not found.")
         
         # If nodes dictionary is not empty
         if self.nodes:
             # Return first inserted node
-            #print(list(self.nodes.items())[0][1].id)
-            return list(self.nodes.items())[0][1]
+            first_in_node = list(self.nodes.items())[0][1]
+            return first_in_node
+        else:
+            print("Network has no nodes.")

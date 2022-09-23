@@ -353,16 +353,14 @@ class Interface:
     def range_query(self, start: int, end:int, start_node_id: int = None) -> None:
         """Lists with the id of the nodes on the interface."""
 
-        nodes = self.get_node(start_node_id).find_successor(start)
-        awnser = []
-
+        max = list(self.nodes.keys())[-1]
         current = self.get_node(start_node_id).find_successor(start)
 
         print("The nodes that exist in between the range are:")
         while current.id <= end:
             print(current.id, end="   ")
             
-            if (current.id == end):
+            if (current.id >= max):
                 return
             
             next = current.find_successor(current.f_table[0][1].id)
@@ -392,6 +390,7 @@ class Interface:
             #predecessor and succesor have the same distance
             else:
                 neighbours.append(predecessor.id) 
+                neighbours.append(successor.id)
                 previous = predecessor.pred
                 predecessor = previous
 

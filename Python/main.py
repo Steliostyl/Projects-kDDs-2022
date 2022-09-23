@@ -22,8 +22,8 @@ def main():
     interface.print_all_nodes()
     
     # Range & kNN queries
-    interface.range_query(3,7)
-    interface.knn(3, 5)
+    interface.range_query(3, 4)
+    interface.knn(2, 3)
     
 if __name__ == "__main__":
     main()

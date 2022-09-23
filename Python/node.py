@@ -3,33 +3,34 @@ import random
 import pandas as pd
 
 # Key size (bits)
-KS = 4
+KS = 6
 # Hashing space
 HS = 2**KS
 
 def parse_csv(filename: str) -> dict:
     """Parses csv and returns a list of items."""
+
     items = {}
     df = pd.read_csv(filename)
 
     for i in range(len(df)):
-        key = '_'.join([df.values[i][0], str(df.values[i][2])])
-        
-        data = {key : {
+        data = {
             'Date': df.values[i][0],
             'Block': df.values[i][1],
             'Plot': df.values[i][2],
             'Experimental_treatment': df.values[i][3],
             'Soil_NH4': df.values[i][4],
             'Soil_NO3': df.values[i][5],
-        }}
+        }
+        data_str = ' '.join([str(v) for _, v in data.items()])
+        key = hash_func(data_str)
         items[key] = data
     
     return items
 
-def hash_func(key: str) -> int:
+def hash_func(data) -> int:
     hash_out = hashlib.sha1()
-    hash_out.update(bytes(key.encode("utf-8")))
+    hash_out.update(bytes(data.encode("utf-8")))
     return int(hash_out.hexdigest(), 16) % HS
 
 def cw_dist(k1: int, k2: int) -> int:
@@ -111,8 +112,8 @@ class Node:
         """Inserts new node to the network as this node's predecessor.
         Also updates neighboring nodes and necessary finger tables."""
                 
-        print("Predecessor node BEFORE node join:")
-        self.pred.print_node(items_print=True)
+        #print("Predecessor node BEFORE node join:")
+        #self.pred.print_node(items_print=True)
 
         # New node's successor is this node
         new_n.f_table.append([(new_n.id + 1) % (HS), self])
@@ -127,12 +128,13 @@ class Node:
         new_n.initialize_finger_table()
         new_n.update_necessary_fingers(joinning=True)
                         
-        print("Predecessor node AFTER node join:")
-        new_n.pred.print_node(items_print=True)
+        #print("Predecessor node AFTER node join:")
+        #new_n.pred.print_node(items_print=True)
 
     def insert_item_to_node(self, new_item: tuple) -> None:
         """Insert data in the node."""
-        
+        if new_item[0] in self.items:
+            print("Already exists!")
         self.items[new_item[0]] = new_item[1]
 
     def delete_item_from_node(self, key):
@@ -149,7 +151,7 @@ class Node:
 
         for key in sorted(self.items):
             # key ∉ (previous predecessor, new node (current predecessor)]
-            if not comp_cw_dist(self.pred.pred.id, hash_func(key), self.pred.id):
+            if not comp_cw_dist(self.pred.pred.id, key, self.pred.id):
                 break
             self.pred.items[key] = self.items[key]
             del self.items[key]
@@ -224,12 +226,13 @@ class Node:
             if next_pred == self or next_pred is None:
                 return
 
-    def print_node(self, items_print = False) -> None:
-        print("Node ID:", self.id)#, "Predecessor ID:", self.pred.id)
+    def print_node(self, items_print = False, finger_print= False) -> None:
+        print("Node ID:", hex(self.id))#, "Predecessor ID:", self.pred.id)
         if items_print: 
-            print(self.items.keys())
-        for entry in self.f_table:
-            print(entry[0], "->", entry[1].id)
+            print([hex(key) for key in self.items.keys()])
+        if finger_print:
+            for entry in self.f_table:
+                print(entry[0], "->", entry[1].id)
         print()
 
 class Interface:
@@ -250,7 +253,11 @@ class Interface:
     def node_join(self, new_node_id: int, start_node_id: int = None) -> None:
         """Adds node to the network."""
         
-        print("Creating and adding node", new_node_id, "to the network...")
+        if new_node_id not in range(HS):
+            print(hex(new_node_id), "not in hashing space, can't create node.")
+            return
+
+        print("Creating and adding node", hex(new_node_id), "to the network...")
         new_node = Node(new_node_id)
         # First node.
         if not self.nodes:
@@ -263,13 +270,13 @@ class Interface:
             start_node.find_successor(new_node.id).insert_new_pred(new_node)
 
         self.nodes[new_node.id] = new_node
-        new_node.print_node(items_print=True)
+        #new_node.print_node(items_print=True)
 
     def insert_item(self, new_item: tuple, start_node_id: int = None) -> None:
         """Inserts an item (key, value) to the correct node of the network."""
 
         start_node = self.get_node(start_node_id)
-        succ = start_node.find_successor(hash_func(new_item[0]))
+        succ = start_node.find_successor(new_item[0])
         succ.insert_item_to_node(new_item)
         #print('Inserting item with hashed key:', hash_func(new_item[0]), "to node with ID:", succ.id)
 
@@ -295,7 +302,7 @@ class Interface:
         """Prints all nodes of the network"""
 
         sorted_nodes = sorted(list(self.nodes.items()))
-        print([sor_id[0] for sor_id in sorted_nodes])
+        print([hex(sor_id[0]) for sor_id in sorted_nodes])
         for n in sorted_nodes:
             n[1].print_node(items_print=items_print)
 
@@ -307,42 +314,21 @@ class Interface:
 
         if node_id not in self.nodes:
             if node_id:
-                print("Node with id", node_id, "not found. Removing random node.")
+                print("Node with id", hex(node_id), "not found. Removing random node.")
             node_id = random.choice(list(self.nodes))
             
         successor = self.nodes[node_id].f_table[0][1]
         print("Node that will be removed from network:")
         self.nodes[node_id].print_node(items_print=True)
 
-        print("Successor node before", node_id, "leave:")
-        successor.print_node(items_print=True)
+        #print("Successor node before", node_id, "leave:")
+        #successor.print_node(items_print=True)
         
         self.nodes[node_id].leave()
         del(self.nodes[node_id])
 
-    def remove_node(self, node_id: int = None) -> None:
-        """Removes node from network and returns its successor.
-        If no node is specified or specified node is not found,
-        it removes a random node from the network.
-        Finally, it prints the id of removed node."""
-
-        if node_id not in self.nodes:
-            if node_id:
-                print("Node with id", node_id, "not found. Removing random node.")
-            node_id = random.choice(list(self.nodes))
-            
-        successor = self.nodes[node_id].f_table[0][1]
-        print("Node that will be removed from network:")
-        self.nodes[node_id].print_node(items_print=True)
-
-        print("Successor node before", node_id, "leave:")
-        successor.print_node(items_print=True)
-        
-        self.nodes[node_id].leave()
-        del(self.nodes[node_id])
-
-        print("Successor node after", node_id, "leave:")
-        successor.print_node(items_print=True)
+        #print("Successor node after", node_id, "leave:")
+        #successor.print_node(items_print=True)
 
     def get_node(self, node_id: int = None) -> Node:
         """Returns node with id node_id. If it's not found,
@@ -358,12 +344,19 @@ class Interface:
         # If nodes dictionary is not empty
         if self.nodes:
             # Return first inserted node
-            #print(list(self.nodes.items())[0][1].id)
-            return list(self.nodes.items())[0][1]
+            first_in_node = list(self.nodes.items())[0][1]
+            #print("Returning first inserted node with id:", first_in_node.id)
+            return first_in_node
+
 
     # TODO defense (hash space)
     def range_query(self, start: int, end:int, start_node_id: int = None) -> None:
-        """Finds the nodes that exist in between a given range"""
+        """List with the id of the nodes on the interface."""
+
+        nodes = self.get_node(start_node_id).find_successor(start)
+        #nodes = list(self.nodes.keys())
+        awnser = []
+
 
         current = self.get_node(start_node_id).find_successor(start)
 

@@ -7,7 +7,7 @@ def main():
     # Nodes creation
     interface = node.Interface()
     #interface.build_network(NC)
-    node_ids=[11, 12, 7, 4]
+    node_ids=[1, 3, 5, 8]
     interface.build_network(node_count=len(node_ids), node_ids=node_ids)
     
     # Data insertion
@@ -22,8 +22,8 @@ def main():
     interface.print_all_nodes()
     
     # Range & kNN queries
-    # interface.range_query(2,11)
-    interface.knn(2,7)
+    interface.range_query(3,7)
+    interface.knn(3, 5)
     
 if __name__ == "__main__":
     main()

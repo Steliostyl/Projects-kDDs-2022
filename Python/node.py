@@ -351,44 +351,43 @@ class Interface:
 
     # TODO defense (hash space)
     def range_query(self, start: int, end:int, start_node_id: int = None) -> None:
-        """List with the id of the nodes on the interface."""
+        """Lists with the id of the nodes on the interface."""
 
         nodes = self.get_node(start_node_id).find_successor(start)
-        #nodes = list(self.nodes.keys())
         awnser = []
-
 
         current = self.get_node(start_node_id).find_successor(start)
 
         print("The nodes that exist in between the range are:")
         while current.id <= end:
             print(current.id, end="   ")
+            
+            if (current.id == end):
+                return
+            
             next = current.find_successor(current.f_table[0][1].id)
             current = next
         
+        
     def knn(self, k: int, node: int, start_node_id: int = None) -> None:
-    
+        """Lists the k nearest nodes of node, given a specific id"""
         neighbours = []
         
         successor  = self.get_node(start_node_id).find_successor(node + 1)
         predecessor = successor.pred.pred
 
-        print(predecessor.id)
-        print(successor.id)
         while len(neighbours) < k:
             #successor is closer
             if abs(node - successor.id) % HS < abs(node - predecessor.id)% HS:
                 neighbours.append(successor.id)
                 next = successor.find_successor(successor.f_table[0][1].id)
                 successor = next
-                print(successor.id)
             
             #predecessor is closer
             elif abs(node - predecessor.id) % HS < abs(node - successor.id) % HS: 
                 neighbours.append(predecessor.id)
                 previous = predecessor.pred
                 predecessor = previous
-                print(predecessor.id)
             
             #predecessor and succesor have the same distance
             else:
@@ -398,5 +397,9 @@ class Interface:
 
                 next = successor.find_successor(successor.f_table[0][1].id)
                 successor = next
-                
-        print(neighbours)
+        
+        print()
+        print()
+        print(f"The {k} nearest neighbours of node with id {node} are: ")
+        for i in neighbours:
+            print(i, end="   ")

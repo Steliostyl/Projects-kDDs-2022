@@ -361,45 +361,49 @@ class Interface:
             #print(list(self.nodes.items())[0][1].id)
             return list(self.nodes.items())[0][1]
 
-    def range_query(self, start: int, end:int) -> None:
-        """List with the id of the nodes on the interface."""
-        nodes = list(self.nodes.keys())
-        awnser = []
+    # TODO defense (hash space)
+    def range_query(self, start: int, end:int, start_node_id: int = None) -> None:
+        """Finds the nodes that exist in between a given range"""
 
-        for i in range(start, end+1):
-            if i in nodes:
-                awnser.append(i)
+        current = self.get_node(start_node_id).find_successor(start)
 
-        print("The id of nodes in between the range are:")
-        print(awnser)
-        print()
+        print("The nodes that exist in between the range are:")
+        while current.id <= end:
+            print(current.id, end="   ")
+            next = current.find_successor(current.f_table[0][1].id)
+            current = next
+        
+    def knn(self, k: int, node: int, start_node_id: int = None) -> None:
+    
+        neighbours = []
+        
+        successor  = self.get_node(start_node_id).find_successor(node + 1)
+        predecessor = successor.pred.pred
 
-    def knn(self, k: int, id: int) -> None:
-        """List with the id of the nodes on the interface."""
-        nodes = sorted(list(self.nodes.keys()))
-        left, right = 1, 1
-        result = []
-        if id not in nodes:
-            print("The node is not on the interface.")
+        print(predecessor.id)
+        print(successor.id)
+        while len(neighbours) < k:
+            #successor is closer
+            if abs(node - successor.id) % HS < abs(node - predecessor.id)% HS:
+                neighbours.append(successor.id)
+                next = successor.find_successor(successor.f_table[0][1].id)
+                successor = next
+                print(successor.id)
             
-            return
-        else:
-            node_index = nodes.index(id)
-            node = nodes[node_index]
-            while len(result) < k:
-                if abs(node - nodes[node_index-left]) < abs(node - nodes[node_index+right]):
-                    result.append(nodes[node_index-left])
-                    left += 1
-                elif abs(node - nodes[node_index-left]) > abs(node - nodes[node_index+right]):
-                    result.append(nodes[node_index+right])
-                    right += 1
-                else:
-                    if nodes[node_index-left] != nodes[node_index+right]:
-                        result.append(nodes[node_index-left])
-                        result.append(nodes[node_index+right])
-                    else:
-                        result.append(nodes[node_index-left])
-                    left += 1
-                    right += 1
-            print(f"The {k} nearest neighbours of node {node} are:")
-            print(result) 
+            #predecessor is closer
+            elif abs(node - predecessor.id) % HS < abs(node - successor.id) % HS: 
+                neighbours.append(predecessor.id)
+                previous = predecessor.pred
+                predecessor = previous
+                print(predecessor.id)
+            
+            #predecessor and succesor have the same distance
+            else:
+                neighbours.append(predecessor.id) 
+                previous = predecessor.pred
+                predecessor = previous
+
+                next = successor.find_successor(successor.f_table[0][1].id)
+                successor = next
+                
+        print(neighbours)

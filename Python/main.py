@@ -16,14 +16,14 @@ def main():
     interface.print_all_nodes()
 
     # Node Join & Leave
-    interface.node_join(15)
-    interface.remove_node(7)
+    # interface.node_join(15)
+    # interface.remove_node(7)
 
     interface.print_all_nodes()
     
     # Range & kNN queries
-    interface.range_query(2,7)
-    interface.knn(2,4)
+    # interface.range_query(2,11)
+    interface.knn(2,7)
     
 if __name__ == "__main__":
     main()

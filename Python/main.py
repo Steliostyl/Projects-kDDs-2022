@@ -1,29 +1,55 @@
-import node
+import interface as iff
 
+# Key size (bits)
+KS = 4
+# Hashing space
+HS = 2**KS
+# Successor list size
+SLS = 3
 # Node count
 NC = 5
 
 def main():
     # Nodes creation
-    interface = node.Interface()
+    interface = iff.Interface()
     #interface.build_network(NC)
     node_ids=[1, 3, 4, 5, 8]
     interface.build_network(node_count=len(node_ids), node_ids=node_ids)
-    
+
     # Data insertion
-    items = node.parse_csv("NH4_NO3.csv")
+    items = iff.parse_csv("NH4_NO3.csv")
     interface.insert_all_data(items.items())
-    interface.print_all_nodes()
+    interface.print_all_nodes(items_print=True)
+    input("Press any key to continue...\n")
 
-    # Node Join & Leave
+    # Key lookup
+    lookup = {"key": 6, "start_node_id": 3}
+    print(f"Looking up responsible node for key {lookup['key']} starting from node {lookup['start_node_id']}:")
+    interface.get_node(lookup["start_node_id"])\
+        .find_successor(lookup["key"]).print_node(items_print=True, finger_print=True)
+    input("Press any key to continue...\n")
+
+    # Node Join
     interface.node_join(15)
-    interface.remove_node(7)
-
     interface.print_all_nodes()
+    input("Press any key to continue...\n")
+
+    # Node Leave
+    interface.remove_node(7)
+    interface.print_all_nodes()
+    input("Press any key to continue...\n")
     
-    # Range & kNN queries
-    interface.range_query(3, 4)
-    interface.knn(2, 3)
+    # Range query
+    rq = {"start": 3, "end": 6}
+    print(f"Nodes in range: [{rq['start']}, {rq['end']}]:")
+    print([hex(n.id) for n in interface.range_query(rq["start"], rq["end"])])
+    input("Press any key to continue...\n")
+
+    # kNN query
+    kNN = {"k": 2,"key": 3}
+    print(f"{kNN['k']} neighbours of {kNN['key']}:")
+    print([hex(n.id) for n in interface.knn(kNN["k"], kNN["key"])])
+    input("Press any key to continue...\n")
     
 if __name__ == "__main__":
     main()

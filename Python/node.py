@@ -3,7 +3,7 @@ import random
 import pandas as pd
 
 # Key size (bits)
-KS = 6
+KS = 4
 # Hashing space
 HS = 2**KS
 
@@ -14,16 +14,18 @@ def parse_csv(filename: str) -> dict:
     df = pd.read_csv(filename)
 
     for i in range(len(df)):
+        key = '_'.join([df.values[i][0], str(df.values[i][2])])
+
         data = {
+            key : {
             'Date': df.values[i][0],
             'Block': df.values[i][1],
             'Plot': df.values[i][2],
             'Experimental_treatment': df.values[i][3],
             'Soil_NH4': df.values[i][4],
             'Soil_NO3': df.values[i][5],
+            }
         }
-        data_str = ' '.join([str(v) for _, v in data.items()])
-        key = hash_func(data_str)
         items[key] = data
     
     return items
@@ -133,8 +135,7 @@ class Node:
 
     def insert_item_to_node(self, new_item: tuple) -> None:
         """Insert data in the node."""
-        if new_item[0] in self.items:
-            print("Already exists!")
+        
         self.items[new_item[0]] = new_item[1]
 
     def delete_item_from_node(self, key):
@@ -151,7 +152,7 @@ class Node:
 
         for key in sorted(self.items):
             # key ∉ (previous predecessor, new node (current predecessor)]
-            if not comp_cw_dist(self.pred.pred.id, key, self.pred.id):
+            if not comp_cw_dist(self.pred.pred.id, hash_func(key), self.pred.id):
                 break
             self.pred.items[key] = self.items[key]
             del self.items[key]
@@ -226,10 +227,11 @@ class Node:
             if next_pred == self or next_pred is None:
                 return
 
-    def print_node(self, items_print = False, finger_print= False) -> None:
-        print("Node ID:", hex(self.id))#, "Predecessor ID:", self.pred.id)
-        if items_print: 
-            print([hex(key) for key in self.items.keys()])
+    def print_node(self, items_print = False, finger_print = False) -> None:
+        print(f'Node ID: {hex(self.id)}')
+        print(f'Predecessor ID: {hex(self.pred.id)}')
+        if items_print:
+            print([key for key in self.items.keys()])
         if finger_print:
             for entry in self.f_table:
                 print(entry[0], "->", entry[1].id)
@@ -276,7 +278,7 @@ class Interface:
         """Inserts an item (key, value) to the correct node of the network."""
 
         start_node = self.get_node(start_node_id)
-        succ = start_node.find_successor(new_item[0])
+        succ = start_node.find_successor(hash_func(new_item[0]))
         succ.insert_item_to_node(new_item)
         #print('Inserting item with hashed key:', hash_func(new_item[0]), "to node with ID:", succ.id)
 
@@ -286,10 +288,10 @@ class Interface:
         start_node = self.get_node(start_node_id)
         start_node.find_successor(hash_func(key)).delete_item_from_node(key)
         
-    def insert_all_data(self, dict_items, start_node_id: int = None) -> None:
+    def insert_all_data(self, dict_items: list[tuple], start_node_id: int = None) -> None:
         """Inserts all data from parsed csv into the correct nodes."""
 
-        for dict_item in list(dict_items):
+        for dict_item in dict_items:
             self.insert_item(dict_item, start_node_id)
         
     def update_record(self, new_item : dict, start_node_id: int = None) -> None:

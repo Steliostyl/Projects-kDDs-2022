@@ -6,6 +6,8 @@ import pandas as pd
 KS = 4
 # Hashing space
 HS = 2**KS
+# Successor list size
+SLS = 3
 
 def parse_csv(filename: str) -> dict:
     """Parses csv and returns a list of items."""
@@ -60,6 +62,7 @@ class Node:
         # list(table) of lists of the form: [position, node]
         self.f_table = []
         self.pred = pred
+        self.succ_list = [self for r in range(SLS)]
 
     def closest_pre_node(self, key: int) -> 'Node':
         """Returns the last predecessor from THIS node's finger table"""
@@ -87,20 +90,6 @@ class Node:
 
         return current.f_table[0][1]
 
-    def circular_node_search(self, key: int) -> 'Node':
-        """Returns the node with the shortest
-        clockwise distance from the given key.
-        Linear search, used to update f_tables."""
-
-        current = self
-        while comp_cw_dist(current.id, current.f_table[0][1].id, key):
-            current = current.f_table[0][1]
-
-        if current.id == key:
-            return current
-
-        return current.f_table[0][1]
-
     def fix_fingers(self) -> None:
         """Called periodically.
         Refreshes finger table entries."""
@@ -109,6 +98,15 @@ class Node:
             next_in_finger = self.f_table[i + 1]
             next_in_finger[1] = self.f_table[i][1].find_successor(next_in_finger[0])
         #self.print_node()
+
+    def fix_successor_list(self):
+        """Called periodically.
+        Refreshes successor list."""
+
+        next_successor = self
+        for i in range(SLS):
+            self.succ_list[i] = next_successor.f_table[0][1]
+            next_successor = next_successor.f_table[0][1]
 
     def insert_new_pred(self, new_n: 'Node') -> None:
         """Inserts new node to the network as this node's predecessor.
@@ -128,6 +126,7 @@ class Node:
 
         self.move_items_to_pred()
         new_n.initialize_finger_table()
+        new_n.fix_successor_list()
         new_n.update_necessary_fingers(joinning=True)
                         
         #print("Predecessor node AFTER node join:")
@@ -141,9 +140,9 @@ class Node:
     def delete_item_from_node(self, key):
         if key in self.items:
             del(self.items[key])
-            print("Successfully removed item with key:", key)
+            print(f"Successfully removed item with key: {key}")
             return
-        print("Key", key, "not found") 
+        print(f"Key {key} not found") 
 
     def move_items_to_pred(self) -> None:    
         """Moves node's items to predecessor.
@@ -208,9 +207,13 @@ class Node:
         if next_pred == self or next_pred is None:
             return
 
+        i = 0
         # next_pred.id ∈ (furthest_possible_pred_id, self]
         while comp_cw_dist(furthest_possible_pred_id, next_pred.id, self.id):
             next_pred.fix_fingers()
+            if i < SLS:
+                next_pred.fix_successor_list()
+                i += 1
             next_pred = next_pred.pred
             if next_pred == self or next_pred is None:
                 return
@@ -228,14 +231,24 @@ class Node:
                 return
 
     def print_node(self, items_print = False, finger_print = False) -> None:
-        print(f'Node ID: {hex(self.id)}')
-        print(f'Predecessor ID: {hex(self.pred.id)}')
+        print(f"Node ID: {hex(self.id)}")
+        print(f"Predecessor ID: {hex(self.pred.id)}")
+        print(f"Successor list: {[hex(succ.id) for succ in self.succ_list]}")
         if items_print:
+            print("Items in node:")
             print([key for key in self.items.keys()])
         if finger_print:
             for entry in self.f_table:
-                print(entry[0], "->", entry[1].id)
+                print(f"{entry[0]} -> {entry[1].id}")
         print()
+    
+    def get_first_alive_succ(self) -> 'Node':
+        """Returns first successor that hasn't failed"""
+
+        for succ in self.succ_list:
+            if succ is not None:
+                return succ
+        return 
 
 class Interface:
     def __init__(self) -> None:
@@ -256,10 +269,10 @@ class Interface:
         """Adds node to the network."""
         
         if new_node_id not in range(HS):
-            print(hex(new_node_id), "not in hashing space, can't create node.")
+            print(f"{hex(new_node_id)} not in hashing space, can't create node.")
             return
 
-        print("Creating and adding node", hex(new_node_id), "to the network...")
+        print(f"Creating and adding node {hex(new_node_id)} to the network...")
         new_node = Node(new_node_id)
         # First node.
         if not self.nodes:
@@ -280,7 +293,7 @@ class Interface:
         start_node = self.get_node(start_node_id)
         succ = start_node.find_successor(hash_func(new_item[0]))
         succ.insert_item_to_node(new_item)
-        #print('Inserting item with hashed key:', hash_func(new_item[0]), "to node with ID:", succ.id)
+        #print(f"Inserting item with hashed key: {hash_func(new_item[0]} to node with ID: {succ.id}")
 
     def delete_item(self, key: str, start_node_id: int = None):
         """Finds node responsible for key and removes the (key, value) entry from it."""
@@ -316,20 +329,20 @@ class Interface:
 
         if node_id not in self.nodes:
             if node_id:
-                print("Node with id", hex(node_id), "not found. Removing random node.")
+                print(f"Node with id {hex(node_id)} not found. Removing random node.")
             node_id = random.choice(list(self.nodes))
             
-        successor = self.nodes[node_id].f_table[0][1]
         print("Node that will be removed from network:")
         self.nodes[node_id].print_node(items_print=True)
 
-        #print("Successor node before", node_id, "leave:")
+        #successor = self.nodes[node_id].f_table[0][1]
+        #print(f"Successor node before {node_id} leave:")
         #successor.print_node(items_print=True)
         
         self.nodes[node_id].leave()
         del(self.nodes[node_id])
 
-        #print("Successor node after", node_id, "leave:")
+        #print(f"Successor node after {node_id} leave:")
         #successor.print_node(items_print=True)
 
     def get_node(self, node_id: int = None) -> Node:
@@ -341,66 +354,72 @@ class Interface:
             if node_id in self.nodes:
                 return self.nodes[node_id]
             else:
-                print("Node with id", node_id, "not found.")
+                print(f"Node with id {node_id} not found.")
         
         # If nodes dictionary is not empty
         if self.nodes:
             # Return first inserted node
             first_in_node = list(self.nodes.items())[0][1]
-            #print("Returning first inserted node with id:", first_in_node.id)
+            #print("Returning first inserted node with id: {first_in_node.id}")
             return first_in_node
 
-
-    # TODO defense (hash space)
     def range_query(self, start: int, end:int, start_node_id: int = None) -> None:
         """Lists with the id of the nodes on the interface."""
 
-        max = list(self.nodes.keys())[-1]
-        current = self.get_node(start_node_id).find_successor(start)
+        nodes_in_range = []
+        first_node = self.get_node(start_node_id).find_successor(start)
+        current = first_node
 
-        print("The nodes that exist in between the range are:")
-        while current.id <= end:
-            print(current.id, end="   ")
-            
-            if (current.id >= max):
+        # current id ∈ [start, end]
+        while cw_dist(start, end) >= cw_dist(current.id, end):
+            nodes_in_range.append(current)
+            current = current.f_table[0][1]
+            if (current == first_node):
                 return
-            
-            next = current.find_successor(current.f_table[0][1].id)
-            current = next
+        
+        print(f"Nodes in the range [{start},{end}]:")
+        for n in nodes_in_range:
+            print(n.id)
         
         
-    def knn(self, k: int, node: int, start_node_id: int = None) -> None:
+    def knn(self, k: int, node_id: int, start_node_id: int = None) -> None:
         """Lists the k nearest nodes of node, given a specific id"""
+
         neighbours = []
         
-        successor  = self.get_node(start_node_id).find_successor(node + 1)
-        predecessor = successor.pred.pred
+        node = self.get_node(start_node_id).find_successor(node_id)
+        next_succ  = node.f_table[0][1]
+        succ_hops = 0
+        next_pred = node.pred
+        pred_hops = 0
 
         while len(neighbours) < k:
-            #successor is closer
-            if abs(node - successor.id) % HS < abs(node - predecessor.id)% HS:
-                neighbours.append(successor.id)
-                next = successor.find_successor(successor.f_table[0][1].id)
-                successor = next
+            # Difference of next_succ and next_pred distance from node
+            succ_pred_difference = (abs(node.id - next_succ.id) % HS) - (abs(node.id - next_pred.id) % HS)
             
-            #predecessor is closer
-            elif abs(node - predecessor.id) % HS < abs(node - successor.id) % HS: 
-                neighbours.append(predecessor.id)
-                previous = predecessor.pred
-                predecessor = previous
-            
-            #predecessor and succesor have the same distance
-            else:
-                neighbours.append(predecessor.id) 
-                neighbours.append(successor.id)
-                previous = predecessor.pred
-                predecessor = previous
+            # Next successor is closer
+            if succ_pred_difference < 0:
+                neighbours.append(next_succ.id)
+                next_succ = next_succ.f_table[0][1]
+                succ_hops += 1
 
-                next = successor.find_successor(successor.f_table[0][1].id)
-                successor = next
+            # Next predecessor is closer
+            elif succ_pred_difference > 0:
+                neighbours.append(next_pred.id)
+                next_pred = next_pred.pred
+                pred_hops += 1
+            
+            # Equal distance
+            else:
+                if succ_hops <= pred_hops:
+                    neighbours.append(next_succ.id)
+                    next_succ = next_succ.f_table[0][1]
+                    succ_hops += 1
+                else:
+                    neighbours.append(next_pred.id)
+                    next_pred = next_pred.pred
+                    pred_hops += 1
         
-        print()
-        print()
-        print(f"The {k} nearest neighbours of node with id {node} are: ")
+        print(f"\nThe {k} nearest neighbours of node with id {node.id} are: ")
         for i in neighbours:
-            print(i, end="   ")
+            print(i)

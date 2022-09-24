@@ -6,9 +6,9 @@ NC = 5
 def main():
     # Nodes creation
     interface = node.Interface()
-    interface.build_network(NC)
-    #node_ids=[1, 3, 5, 8]
-    #interface.build_network(node_count=len(node_ids), node_ids=node_ids)
+    #interface.build_network(NC)
+    node_ids=[1, 3, 4, 5, 8]
+    interface.build_network(node_count=len(node_ids), node_ids=node_ids)
     
     # Data insertion
     items = node.parse_csv("NH4_NO3.csv")

@@ -72,11 +72,9 @@ def benchmark_all():
         "Range Query": {},
         "kNN Query": {}
     }
-    i = 50
-    while i <= 300:
+    for i in range(20, 200, 20):
         print(f"Benchmarking {i} nodes...")
         answer = benchmark(i, answer)
-        i += 50
     return answer
 
 def results_print(results: dict) -> None:

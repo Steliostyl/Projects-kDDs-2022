@@ -1,7 +1,8 @@
+from xmlrpc.client import boolean
 from node import Node, hash_func, cw_dist
-from main import KS, HS
 import random
 import pandas as pd
+from main import HS, KS
 
 def parse_csv(filename: str) -> dict:
     """Parses csv and returns a list of items."""
@@ -39,14 +40,14 @@ class Interface:
         for x in final_ids:
             self.node_join(new_node_id=x)
             
-    def node_join(self, new_node_id: int, start_node_id: int = None) -> None:
+    def node_join(self, new_node_id: int, start_node_id: int = None, print_node: boolean = False) -> None:
         """Adds node to the network."""
         
         if new_node_id not in range(HS):
             print(f"{hex(new_node_id)} not in hashing space, can't create node.")
             return
-
-        print(f"Creating and adding node {hex(new_node_id)} to the network...")
+        if print_node:
+            print(f"Creating and adding node {hex(new_node_id)} to the network...")
         new_node = Node(new_node_id)
         # First node.
         if not self.nodes:
@@ -94,29 +95,27 @@ class Interface:
         for n in sorted_nodes:
             n[1].print_node(items_print=items_print)
 
-    def remove_node(self, node_id: int = None) -> None:
-        """Removes node from network and returns its successor.
-        If no node is specified or specified node is not found,
-        it removes a random node from the network.
-        Finally, it prints the id of removed node."""
+    def node_leave(self, node_id: int, start_node_id: int = None, print_node = False) -> None:
+        """Removes node from network."""
 
-        if node_id not in self.nodes:
-            if node_id:
-                print(f"Node with id {hex(node_id)} not found. Removing random node.")
-            node_id = random.choice(list(self.nodes))
-            
-        print("Node that will be removed from network:")
-        self.nodes[node_id].print_node(items_print=True)
-
-        successor = self.nodes[node_id].f_table[0][1]
-        print(f"Successor node before {hex(node_id)} leave:")
-        successor.print_node(items_print=True)
+        node_to_remove = self.get_node(start_node_id).find_successor(node_id)
+        if node_to_remove.id != node_id:
+            print(f"Node {node_id} not found.")
+            return
         
-        self.nodes[node_id].leave()
+        if print_node:
+            print("Node that will be removed from network:")
+            node_to_remove.print_node(items_print=True)
+            print(f"Successor node before {hex(node_id)} leave:")
+            successor = node_to_remove.f_table[0][1]
+            successor.print_node(items_print=True)
+        
+        node_to_remove.leave()
         del(self.nodes[node_id])
 
-        print(f"Successor node after {hex(node_id)} leave:")
-        successor.print_node(items_print=True)
+        if print_node:
+            print(f"Successor node after {hex(node_id)} leave:")
+            successor.print_node(items_print=True)
 
     def get_node(self, node_id: int = None) -> Node:
         """Returns node with id node_id. If it's not found,
@@ -165,7 +164,6 @@ class Interface:
         next_pred = node.pred
         pred_hops = 0
 
-        print(f"\nThe {k} nearest neighbours of node with id {hex(node.id)} are: ")
         while len(neighbours) < k:
             # Difference of next_succ and next_pred distance from node
             succ_pred_difference = (abs(node_id - next_succ.id) % HS) - (abs(node_id - next_pred.id) % HS)

@@ -2,7 +2,7 @@ import interface as iff
 import random
 
 # Key size (bits)
-KS = 4
+KS = 20
 # Hashing space
 HS = 2**KS
 # Successor list size
@@ -52,7 +52,7 @@ def main():
     input("Press any key to continue...\n")
 
     # Node Leave
-    interface.remove_node(7)
+    interface.node_leave(7)
     interface.print_all_nodes()
     input("Press any key to continue...\n")
     

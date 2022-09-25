@@ -13,14 +13,12 @@ def parse_csv(filename: str) -> dict:
         key = '_'.join([df.values[i][0], str(df.values[i][2])])
 
         data = {
-            key : {
             'Date': df.values[i][0],
             'Block': df.values[i][1],
             'Plot': df.values[i][2],
             'Experimental_treatment': df.values[i][3],
             'Soil_NH4': df.values[i][4],
             'Soil_NO3': df.values[i][5],
-            }
         }
         items[key] = data
     
@@ -82,11 +80,11 @@ class Interface:
         for dict_item in dict_items:
             self.insert_item(dict_item, start_node_id)
         
-    def update_record(self, new_item : dict, start_node_id: int = None) -> None:
+    def update_record(self, new_item: tuple, start_node_id: int = None) -> None:
         """Updates the record (value) of an item given its key."""
 
         start_node = self.get_node(start_node_id)
-        start_node.find_successor(hash_func(list(new_item.keys())[0])).insert_item_to_node(new_item)
+        start_node.find_successor(hash_func(new_item[0])).insert_item_to_node(new_item, print_item=True)
         
     def print_all_nodes(self, items_print = False) -> None:
         """Prints all nodes of the network"""
@@ -130,6 +128,7 @@ class Interface:
                 return self.nodes[node_id]
             else:
                 print(f"Node with id {node_id} not found.")
+                return
         
         # If nodes dictionary is not empty
         if self.nodes:
@@ -195,3 +194,12 @@ class Interface:
                     pred_hops += 1
         
         return neighbours
+
+    def exact_match(self, key: int, start_node: int = None):
+        """Finds and returns node with id same as a given key, if it exists."""
+
+        node = self.get_node(start_node).find_successor(key)
+        if node.id != key:
+            print(f"Couldn't find node with id {key}.")
+            return
+        return node

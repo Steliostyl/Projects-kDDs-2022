@@ -103,15 +103,22 @@ class Node:
         #print("Predecessor node AFTER node join:")
         #new_n.pred.print_node(items_print=True)
 
-    def insert_item_to_node(self, new_item: tuple) -> None:
+    def insert_item_to_node(self, new_item: tuple, print_item=False) -> None:
         """Insert data in the node."""
         
+        if print_item:
+            print(f"Item with key {new_item[0]} before updating record:\n{self.items[new_item[0]]}")
         self.items[new_item[0]] = new_item[1]
+        if print_item:
+            print(f"Item with key {new_item[0]} after updating record:\n{self.items[new_item[0]]}")
 
-    def delete_item_from_node(self, key):
+    def delete_item_from_node(self, key: str) -> None:
         if key in self.items:
+            print(f"Node before removing item with key {key}:")
+            self.print_node(items_print=True)
             del(self.items[key])
-            print(f"Successfully removed item with key: {key}")
+            print(f"Node after removing item with key {key}:")
+            self.print_node(items_print=True)
             return
         print(f"Key {key} not found") 
 

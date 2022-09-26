@@ -2,7 +2,7 @@ import interface as iff
 import random
 
 # Key size (bits)
-KS = 20
+KS = 10
 # Hashing space
 HS = 2**KS
 # Successor list size

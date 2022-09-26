@@ -81,11 +81,15 @@ class Interface:
         for dict_item in dict_items:
             self.insert_item(dict_item, start_node_id)
         
-    def update_record(self, new_item: tuple, start_node_id: int = None) -> None:
+    def update_record(self, new_item: tuple, start_node_id: int = None, print_item: bool = False) -> None:
         """Updates the record (value) of an item given its key."""
 
         start_node = self.get_node(start_node_id)
-        start_node.find_successor(hash_func(new_item[0])).insert_item_to_node(new_item, print_item=True)
+        responsible_node = start_node.find_successor(hash_func(new_item[0]))
+        if new_item[0] in responsible_node.items:
+            responsible_node.insert_item_to_node(new_item, print_item=print_item)
+            return
+        print(f"Could not find item with key {new_item[0]}")
         
     def print_all_nodes(self, items_print = False) -> None:
         """Prints all nodes of the network"""
@@ -193,10 +197,10 @@ class Interface:
         
         return neighbours
 
-    def exact_match(self, key: int, start_node: int = None):
+    def exact_match(self, key: int, start_node_id: int = None) -> Node  | None:
         """Finds and returns node with id same as a given key, if it exists."""
 
-        node = self.get_node(start_node).find_successor(key)
+        node = self.get_node(start_node_id).find_successor(key)
         if node.id != key:
             print(f"Couldn't find node with id {key}.")
             return

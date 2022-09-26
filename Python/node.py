@@ -1,3 +1,4 @@
+from xmlrpc.client import boolean
 from main import KS, HS, SLS
 import hashlib
 
@@ -112,13 +113,15 @@ class Node:
         if print_item:
             print(f"Item with key {new_item[0]} after updating record:\n{self.items[new_item[0]]}")
 
-    def delete_item_from_node(self, key: str) -> None:
+    def delete_item_from_node(self, key: str, item_print: bool = False) -> None:
         if key in self.items:
-            print(f"Node before removing item with key {key}:")
-            self.print_node(items_print=True)
+            if item_print:
+                print(f"Node before removing item with key {key}:")
+                self.print_node(items_print=True)
             del(self.items[key])
-            print(f"Node after removing item with key {key}:")
-            self.print_node(items_print=True)
+            if item_print:
+                print(f"Node after removing item with key {key}:")
+                self.print_node(items_print=True)
             return
         print(f"Key {key} not found") 
 

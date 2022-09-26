@@ -64,7 +64,7 @@ def main():
     input("Press any key to continue...\n")
     
     # Range query
-    rq = {"start": 5, "end": 400}
+    rq = {"start": 5, "end": 10}
     print(f"Nodes in range: [{hex(rq['start'])}, {hex(rq['end'])}]:")
     print([hex(n.id) for n in interface.range_query(rq["start"], rq["end"])])
     input("Press any key to continue...\n")

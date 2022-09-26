@@ -21,104 +21,127 @@ def benchmark(NC: int, results: dict) -> dict:
     data_end = perf_counter()
 
     # Generate random numbers to use for benchmarking
-    (leave_n, kNN_n, ex_match_n) = random.sample(sorted(interface.nodes), 3)
-    search_key = random.randint(a=0, b=HS-1)
+    run_count = 10
+    random_nodes = random.sample(sorted(interface.nodes), run_count*2)
+    (leave_n, ex_match_n) = (random_nodes[:run_count], random_nodes[run_count:])
+
+    search_keys = random.sample(range(HS), run_count)
     first_node = interface.get_node()
 
+    join_nodes = []
+    count = 0
     for i in range(HS):
         if i not in interface.nodes:
-            nn_id = i
-            break
+            count += 1
+            join_nodes.append(i)
+            if count >= run_count//2:
+                break
 
-    in_key = "2030/05/05_420"
-    in_data = "In data"
-    up_data = "Update data"
-    del_key = random.sample(sorted(items), 1)[0]
+    in_keys = []
+    in_data = []
+    up_data = []
+
+    for i in range(run_count):
+        in_keys.append(f"In key {i}")
+        in_data.append(f"In data {i}")
+        up_data.append(f"Updata {i}")
 
     # Start process benchmarking NC Nodes
 
     # Insert key
+    print("Benchmarking insert key...")
     in_key_start = perf_counter()
-    interface.insert_item((in_key, in_data), first_node.id)
+    for index, key in enumerate(in_keys):
+        interface.insert_item((key, in_data[index]), first_node.id)
     in_key_end = perf_counter()
 
-    # Delete key
-    del_key_start = perf_counter()
-    interface.delete_item(key=del_key, start_node_id=first_node.id)
-    del_key_end = perf_counter()
-
     # Update record based on key
+    print("Benchmarking Update record based on key...")
     up_key_start = perf_counter()
-    interface.update_record((in_key, up_data), first_node.id)
+    for key in in_keys:
+        interface.update_record((key, up_data[index]), first_node.id)
     up_key_end = perf_counter()
 
+    # Delete key
+    print("Benchmarking Delete key...")
+    del_key_start = perf_counter()
+    for key in in_keys:
+        interface.delete_item(key=key, start_node_id=first_node.id)
+    del_key_end = perf_counter()
+
     # Key lookup 
+    print("Benchmarking Key lookup...")
     query_start = perf_counter()
-    first_node.find_successor(search_key)
+    for key in search_keys:
+        first_node.find_successor(key)
     query_end = perf_counter()
 
     # Node join
+    print("Benchmarking Node join...")
     join_start = perf_counter()
-    interface.node_join(new_node_id=nn_id, start_node_id=first_node.id)
+    for key in join_nodes:
+        interface.node_join(new_node_id=key)
     join_end = perf_counter()
 
-    # Node Leave
-    leave_start = perf_counter()
-    interface.node_leave(leave_n, first_node.id)
-    leave_end = perf_counter()
-
-    # Massive nodes' failure
-    mnn_start = perf_counter()
-
-    mnn_end = perf_counter()
-
     # Exact match
+    print("Benchmarking Exact match...")
     ex_match_start = perf_counter()
-    #interface.exact_match(key=ex_match_n, start_node_id=first_node.id)
+    for key in ex_match_n:
+        interface.exact_match(key=key)
     ex_match_end = perf_counter()
 
+    # Node Leave
+    print("Benchmarking Node Leave...")
+    leave_start = perf_counter()
+    for key in leave_n:
+        interface.node_leave(key)
+    leave_end = perf_counter()
+
     # Range query
+    print("Benchmarking Range query...")
     range_start = perf_counter()
-    interface.range_query(150, 250)
+    for key in search_keys:
+        interface.range_query(key, (key+20) % HS )
     range_end = perf_counter()
 
     # kNN query
+    print("Benchmarking kNN query...")
     knn_start = perf_counter()
-    interface.knn(5, kNN_n)
+    for key in join_nodes:
+        interface.knn(5, key)
     knn_end = perf_counter()
 
-
-    results['Build'][NC] = (build_end - build_start)
-    results['Insert all data'][NC] = (data_end - data_start)
-    results['Insert key'][NC] = (in_key_end - in_key_start)
-    results['Delete key'][NC] = (del_key_end - del_key_start)
-    results['Update key'][NC] = (up_key_end - up_key_start)
-    results['Key lookup'][NC] = (query_end - query_start)
-    results['Node Join'][NC] = (join_end - join_start)
-    results['Node Leave'][NC] = (leave_end - leave_start)
-    results['Massive Nodes\' failure'][NC] = (mnn_end - mnn_start)
-    results['Exact match'][NC] = (ex_match_end - ex_match_start)
-    results['Range Query'][NC] = (range_end - range_start)
-    results['kNN Query'][NC] = (knn_end - knn_start)
+    #results['Build'][NC] = (build_end - build_start) * 1000
+    #results['Insert all data'][NC] = (data_end - data_start) * 1000
+    results['Insert key'][NC] = (in_key_end - in_key_start) * 1000 / run_count
+    results['Delete key'][NC] = (del_key_end - del_key_start) * 1000 / run_count
+    results['Update key'][NC] = (up_key_end - up_key_start) * 1000 / run_count
+    results['Key lookup'][NC] = (query_end - query_start) * 1000 / run_count
+    results['Node Join'][NC] = (join_end - join_start) * 1000 / (run_count/2)
+    results['Node Leave'][NC] = (leave_end - leave_start) * 1000 / run_count
+    #results['Massive Nodes\' failure'][NC] = (mnn_end - mnn_start)
+    results['Exact match'][NC] = (ex_match_end - ex_match_start) * 1000 / run_count
+    results['Range Query'][NC] = (range_end - range_start) * 1000 / run_count
+    results['kNN Query'][NC] = (knn_end - knn_start) * 1000 / run_count
     return results
 
 def benchmark_all() -> dict:
     answer = {
-        "Build": {},
-        "Insert all data": {},
+        #"Build": {},
+        #"Insert all data": {},
         "Insert key": {},
         "Delete key": {},
         "Update key": {},
         "Key lookup": {},
         "Node Join": {},
         "Node Leave": {},
-        "Massive Nodes' failure": {},
+        #"Massive Nodes' failure": {},
         "Exact match": {},
         "Range Query": {},
         "kNN Query": {}
     }
     for i in range(20, 301, 40):
-        print(f"Benchmarking {i} nodes...")
+        print(f"Benchmarking {i} nodes...\n")
         answer = benchmark(i, answer)
     return answer
 
@@ -135,8 +158,10 @@ def plot_results(results: dict) -> dict[plt.plot]:
         plt.figure(process[0])
         plots[process[0]] = plt.plot([nc[0] for nc in process[1].items()],\
             [t[1] for t in process[1].items()])
+        if process[0] != "Node Join" and process[0] != "Node Leave":
+            plt.axis([20, 300, 0, 0.1])
         plt.xlabel("Node Count")
-        plt.ylabel("Time")
+        plt.ylabel("Time (ms)")
         plt.title(process[0])
         plt.show()
 

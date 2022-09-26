@@ -220,7 +220,7 @@ class Node:
         if finger_print:
             print("Finger table:")
             for entry in self.f_table:
-                print(f"{entry[0]} -> {entry[1].id}")
+                print(f"{hex(entry[0])} -> {hex(entry[1].id)}")
         print()
 
     def print_succ(self):
@@ -237,4 +237,4 @@ class Node:
         for succ in self.succ_list:
             if succ is not None:
                 return succ
-        return 
+        return

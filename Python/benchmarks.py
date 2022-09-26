@@ -141,7 +141,7 @@ def benchmark_all() -> dict:
         "kNN Query": {}
     }
     for i in range(20, 301, 40):
-        print(f"Benchmarking {i} nodes...\n")
+        print(f"\nBenchmarking {i} nodes...\n")
         answer = benchmark(i, answer)
     return answer
 

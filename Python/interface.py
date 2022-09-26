@@ -69,11 +69,11 @@ class Interface:
         succ.insert_item_to_node(new_item)
         #print(f"Inserting item with hashed key: {hash_func(new_item[0]} to node with ID: {succ.id}")
 
-    def delete_item(self, key: str, start_node_id: int = None):
+    def delete_item(self, key: str, start_node_id: int = None, item_print=False):
         """Finds node responsible for key and removes the (key, value) entry from it."""
 
         start_node = self.get_node(start_node_id)
-        start_node.find_successor(hash_func(key)).delete_item_from_node(key)
+        start_node.find_successor(hash_func(key)).delete_item_from_node(key,item_print=item_print)
         
     def insert_all_data(self, dict_items: list[tuple], start_node_id: int = None) -> None:
         """Inserts all data from parsed csv into the correct nodes."""
@@ -91,13 +91,13 @@ class Interface:
             return
         print(f"Could not find item with key {new_item[0]}")
         
-    def print_all_nodes(self, items_print = False) -> None:
+    def print_all_nodes(self, items_print = False, finger_print=False) -> None:
         """Prints all nodes of the network"""
 
         sorted_nodes = sorted(list(self.nodes.items()))
         print([hex(sor_id[0]) for sor_id in sorted_nodes])
         for n in sorted_nodes:
-            n[1].print_node(items_print=items_print)
+            n[1].print_node(finger_print=finger_print, items_print=items_print)
 
     def node_leave(self, node_id: int, start_node_id: int = None, print_node = False) -> None:
         """Removes node from network."""
@@ -162,7 +162,10 @@ class Interface:
 
         neighbours = []
         
-        node = self.get_node(start_node_id).find_successor(node_id)
+        node = self.exact_match(key=node_id ,start_node_id=start_node_id)
+        if node.id is None:
+            return
+
         next_succ  = node.f_table[0][1]
         succ_hops = 0
         next_pred = node.pred
@@ -205,3 +208,16 @@ class Interface:
             print(f"Couldn't find node with id {key}.")
             return
         return node
+
+    def get_random_node(self) -> Node:
+        """Returns random node in the network."""
+
+        random_key = random.sample(sorted(self.nodes), 1)[0]
+        return self.nodes[random_key]
+    
+    def get_id_not_in_net(self) -> int:
+        """Returns node id that doesn't already exist in the network."""
+
+        for i in range(HS):
+            if i not in self.nodes:
+                return i

@@ -2,6 +2,7 @@ import interface as iff
 from time import perf_counter
 import random
 from main import KS
+import matplotlib.pyplot as plt
 
 HS = 2**KS
 
@@ -73,7 +74,7 @@ def benchmark(NC: int, results: dict) -> dict:
 
     # Exact match
     ex_match_start = perf_counter()
-    interface.exact_match(key=ex_match_n, start_node_id=first_node.id)
+    #interface.exact_match(key=ex_match_n, start_node_id=first_node.id)
     ex_match_end = perf_counter()
 
     # Range query
@@ -101,7 +102,7 @@ def benchmark(NC: int, results: dict) -> dict:
     results['kNN Query'][NC] = (knn_end - knn_start)
     return results
 
-def benchmark_all():
+def benchmark_all() -> dict:
     answer = {
         "Build": {},
         "Insert all data": {},
@@ -127,4 +128,20 @@ def results_print(results: dict) -> None:
         for node_count, time in process[1].items():
             print(f"{process[0]} time for {node_count} nodes: {time}")
 
-results_print(benchmark_all())
+def plot_results(results: dict) -> dict[plt.plot]:
+    # X axis = Node count, Y axis = Time
+    plots = {}
+    for process in results.items():
+        plt.figure(process[0])
+        plots[process[0]] = plt.plot([nc[0] for nc in process[1].items()],\
+            [t[1] for t in process[1].items()])
+        plt.xlabel("Node Count")
+        plt.ylabel("Time")
+        plt.title(process[0])
+        plt.show()
+
+    return plots
+
+results = benchmark_all()
+plot_results(results)
+#results_print(benchmark_all())
